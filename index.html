@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>도넛위의게임</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+      text-align: center;
+    }
+
+    header {
+      background-color: #ffc107;
+      padding: 1em;
+      font-size: 2em;
+      font-weight: bold;
+    }
+
+    main {
+      padding: 2em;
+    }
+
+    .game-button {
+      margin: 1em;
+      padding: 1em 2em;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background-color: #4caf50;
+      color: white;
+      transition: background-color 0.3s;
+    }
+
+    .game-button:hover {
+      background-color: #45a049;
+    }
+
+    .game-screen {
+      display: none;
+      margin-top: 2em;
+    }
+
+    .back-button {
+      position: absolute;
+      top: 1em;
+      left: 1em;
+      padding: 0.5em 1em;
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 5px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+
+    .cell {
+      background-color: white;
+      border: 2px solid #333;
+      font-size: 2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mode-select {
+      margin-top: 1em;
+    }
+
+    .reset-button {
+      margin-top: 1em;
+      padding: 0.5em 1em;
+      font-size: 1em;
+      border: none;
+      border-radius: 5px;
+      background-color: #e91e63;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>도넛위의게임</header>
+  <main id="home">
+    <button class="game-button" onclick="showGame('tic')">틱택토</button>
+    <button class="game-button" onclick="showGame('mine')">10x10 지뢰찾기</button>
+    <button class="game-button" onclick="showGame('snake')">스네이크 게임</button>
+  </main>
+
+  <!-- 틱택토 화면 -->
+  <div id="tic" class="game-screen">
+    <button class="back-button" onclick="goHome()">← 홈으로</button>
+    <h2>틱택토 (토러스 모드)</h2>
+    <div class="mode-select">
+      <button class="game-button" onclick="startTicTacToe('2p')">2인 대전</button>
+      <button class="game-button" onclick="startTicTacToe('ai')">AI와 대전</button>
+    </div>
+    <div class="board" id="tic-container"></div>
+    <p id="tic-status"></p>
+    <button class="reset-button" onclick="initTicTacToe()">게임 리셋</button>
+  </div>
+
+  <!-- 다른 게임 화면 -->
+  <div id="mine" class="game-screen">
+    <button class="back-button" onclick="goHome()">← 홈으로</button>
+    <h2>10x10 지뢰찾기 (토러스 모드)</h2>
+    <div id="mine-container">게임 구현 예정</div>
+  </div>
+
+  <div id="snake" class="game-screen">
+    <button class="back-button" onclick="goHome()">← 홈으로</button>
+    <h2>스네이크 게임 (토러스 모드)</h2>
+    <div id="snake-container">게임 구현 예정</div>
+  </div>
+
+  <script>
+    function showGame(id) {
+      document.getElementById('home').style.display = 'none';
+      document.querySelectorAll('.game-screen').forEach(el => el.style.display = 'none');
+      document.getElementById(id).style.display = 'block';
+    }
+
+    function goHome() {
+      document.getElementById('home').style.display = 'block';
+      document.querySelectorAll('.game-screen').forEach(el => el.style.display = 'none');
+    }
+
+    let board = [];
+    let currentPlayer = 'X';
+    let statusEl;
+    let isAI = false;
+    let gameOver = false;
+
+    function initTicTacToe() {
+      const container = document.getElementById('tic-container');
+      statusEl = document.getElementById('tic-status');
+      container.innerHTML = '';
+      board = Array(3).fill().map(() => Array(3).fill(''));
+      gameOver = false;
+
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          cell.addEventListener('click', handleCellClick);
+          container.appendChild(cell);
+        }
+      }
+
+      currentPlayer = 'X';
+      statusEl.textContent = currentPlayer + ' 차례';
+    }
+
+    function startTicTacToe(mode) {
+      isAI = (mode === 'ai');
+      initTicTacToe();
+    }
+
+    function handleCellClick(e) {
+      if (gameOver) return;
+      const row = parseInt(e.target.dataset.row);
+      const col = parseInt(e.target.dataset.col);
+      if (board[row][col] !== '') return;
+
+      makeMove(row, col);
+
+      if (!gameOver && isAI && currentPlayer === 'O') {
+        setTimeout(aiMove, 300);
+      }
+    }
+
+    function makeMove(row, col) {
+      board[row][col] = currentPlayer;
+      updateBoard();
+
+      if (checkWin(row, col)) {
+        statusEl.textContent = currentPlayer + ' 승리!';
+        gameOver = true;
+      } else {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        statusEl.textContent = currentPlayer + ' 차례';
+      }
+    }
+
+    function aiMove() {
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          if (board[r][c] === '') {
+            makeMove(r, c);
+            return;
+          }
+        }
+      }
+    }
+
+    function updateBoard() {
+      const cells = document.querySelectorAll('.cell');
+      cells.forEach(cell => {
+        const r = parseInt(cell.dataset.row);
+        const c = parseInt(cell.dataset.col);
+        cell.textContent = board[r][c];
+      });
+    }
+
+    function checkWin(r, c) {
+      const player = board[r][c];
+      const get = (i, j) => board[(i + 3) % 3][(j + 3) % 3];
+
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          let line = [get(r, c), get(r + dr, c + dc), get(r + 2 * dr, c + 2 * dc)];
+          if (line.every(val => val === player)) return true;
+        }
+      }
+      return false;
+    }
+  </script>
+  <script>
+    // 지뢰찾기 (토러스 모드)
+    const mineSize = 10;
+    const mineCount = 15;
+    let mineBoard = []; // 지뢰, 숫자가 포함
+    let mineRevealed = []; // 열린 상태
+    let mineFlags = []; // 깃발 상태
+    let mineContainer = document.getElementById('mine-container');
+
+    // 지뢰찾기 초기화
+    function initMinesweeper() {
+      mineBoard = Array.from({ length: mineSize }, () => Array(mineSize).fill(0));initMinesweeper
+      mineRevealed = Array.from({ length: mineSize }, () => Array(mineSize).fill(false)); 
+      mineFlags = Array.from({ length: mineSize }, () => Array(mineSize).fill(false));
+
+      mineContainer.innerHTML = '';
+      mineContainer.style.display = 'grid';
+      mineContainer.style.gridTemplateColumns = `repeat(${mineSize}, 30px)`;
+      mineContainer.style.gridGap = '2px';
+      mineContainer.style.justifyContent = 'center';
+      mineContainer.style.margin = '20px auto';
+      
+      // 지뢰 배치
+      let placed = 0;
+      while (placed < mineCount) {
+        let r = Math.floor(Math.random() * mineSize);
+        let c = Math.floor(Math.random() * mineSize);
+        if (mineBoard[r][c] !== 'M') {
+          mineBoard[r][c] = 'M';
+          placed++;
+        }
+      }
+
+      // 숫자 채우기
+      for (let r = 0; r < mineSize; r++) {
+        for (let c = 0; c < mineSize; c++) {
+          if (mineBoard[r][c] === 'M') continue;
+
+          let count = 0;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              if (dr === 0 && dc === 0) continue;
+              let nr = (r + dr + mineSize) % mineSize;
+              let nc = (c + dc + mineSize) % mineSize;
+              if (mineBoard[nr][nc] === 'M') count++;
+            }
+          }
+          mineBoard[r][c] = count;
+        }
+      }
+
+      // 화면 생성
+      for (let r = 0; r < mineSize; r++) {
+        for (let c = 0; c < mineSize; c++) {
+          let cell = document.createElement('div');
+          cell.style.width = '30px';
+          cell.style.height = '30px';
+          cell.style.backgroundColor = '#ccc';
+          cell.style.border = '1px solid #999';
+          cell.style.display = 'flex';
+          cell.style.alignItems = 'center';
+          cell.style.justifyContent = 'center';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+
+          cell.addEventListener('click', onMineClick);
+          cell.addEventListener('contextmenu', onMineRightClick);
+
+          mineContainer.appendChild(cell);
+        }
+      }
+
+      // 다시하기 버튼 생성
+      let resetBtn = document.createElement('button');
+      resetBtn.textContent = '다시하기';
+      resetBtn.onclick = initMinesweeper;
+      resetBtn.style.margin = '20px';
+      resetBtn.style.padding = '10px 20px';
+      resetBtn.style.fontSize = '1em';
+      resetBtn.style.background = '#e91e63';
+      resetBtn.style.color = '#ffffff';
+      resetBtn.style.border = 'none';
+      resetBtn.style.borderRadius = '5px';
+      resetBtn.style.cursor = 'pointer';
+      resetBtn.style.textAlign = 'center';
+      
+      mineContainer.appendChild(resetBtn);
+    }
+
+    function onMineClick(e) {
+      let r = parseInt(e.target.dataset.row);
+      let c = parseInt(e.target.dataset.col);
+      if (mineRevealed[r][c] || mineFlags[r][c]) return;
+
+      revealCell(r, c);
+    }
+
+    function onMineRightClick(e) {
+      e.preventDefault();
+      let r = parseInt(e.target.dataset.row);
+      let c = parseInt(e.target.dataset.col);
+      
+      if (mineRevealed[r][c]) return;
+
+      mineFlags[r][c] = !mineFlags[r][c];
+      e.target.textContent = mineFlags[r][c] ? '🚩' : '';
+    }
+
+    function revealCell(r, c) {
+      r = (r + mineSize) % mineSize;
+      c = (c + mineSize) % mineSize;
+
+      if (mineRevealed[r][c]) return;
+
+      mineRevealed[r][c] = true;
+
+      let index = r * mineSize + c;
+      let cell = mineContainer.children[index];
+      
+      cell.style.backgroundColor = '#eee';
+      
+      if (mineBoard[r][c] === 'M') {
+        cell.textContent = '💣';
+        cell.style.backgroundColor = '#f88';
+        alert('게임 오버!');
+        revealAll();
+      } else if (mineBoard[r][c] > 0) {
+        cell.textContent = mineBoard[r][c];
+      } else {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            revealCell(r + dr, c + dc);
+          }
+        }
+      }
+    }
+
+    function revealAll() {
+      for (let r = 0; r < mineSize; r++) {
+        for (let c = 0; c < mineSize; c++) {
+          let index = r * mineSize + c;
+          let cell = mineContainer.children[index];
+          if (mineRevealed[r][c]) continue;
+
+          if (mineBoard[r][c] === 'M') {
+            cell.textContent = '💣';
+            cell.style.backgroundColor = '#f88';
+          } else if (mineBoard[r][c] > 0) {
+            cell.textContent = mineBoard[r][c];
+          }
+          cell.style.backgroundColor = '#eee';
+        }
+      }
+    }
+
+    function showGame(id) {
+      document.getElementById('home').style.display = 'none';
+      document.querySelectorAll('.game-screen').forEach(el => el.style.display = 'none');
+      document.getElementById(id).style.display = 'block';
+      if (id === 'mine') initMinesweeper();
+    }
+
+    function goHome() {
+      document.getElementById('home').style.display = 'block';
+      document.querySelectorAll('.game-screen').forEach(el => el.style.display = 'none');
+    }
+    let revealedCount = 0;
+    let totalSafeCells;
+
+    function initMinesweeper() {
+    mineContainer.innerHTML = '';
+    mineContainer.style.display = 'grid';
+    mineContainer.style.gridTemplateColumns = `repeat(${mineSize}, 30px)`;
+    mineContainer.style.gridGap = '2px';
+    mineContainer.style.justifyContent = 'center';
+    mineContainer.style.margin = '20px auto';
+    
+    // 지뢰 개수 표시
+    let mineCounter = document.createElement('div');
+    mineCounter.textContent =`지뢰 개수: ${mineCount}`;
+    mineCounter.style.marginBottom = '20px';
+    mineCounter.style.fontSize = '1.5em';
+    mineCounter.style.textAlign = 'center';
+    
+    mineContainer.appendChild(mineCounter);
+
+    // 지뢰 배열 초기화...
+    mineBoard = Array.from({ length: mineSize }, () => Array(mineSize).fill(0)); 
+    mineRevealed = Array.from({ length: mineSize }, () => Array(mineSize).fill(false)); 
+    mineFlags = Array.from({ length: mineSize }, () => Array(mineSize).fill(false));
+
+    totalSafeCells = mineSize * mineSize - mineCount;
+    revealedCount = 0;
+
+    // 지뢰 배치...
+    let placed = 0;
+    while (placed < mineCount) {
+        let r = Math.floor(Math.random() * mineSize);
+        let c = Math.floor(Math.random() * mineSize);
+        if (mineBoard[r][c] !== 'M') {
+        mineBoard[r][c] = 'M';
+        placed++;
+        }
+    }
+
+    // 숫자 채우고...
+    for (let r = 0; r < mineSize; r++) {
+        for (let c = 0; c < mineSize; c++) {
+        if (mineBoard[r][c] === 'M') continue;
+
+        let count = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+
+            let nr = (r + dr + mineSize) % mineSize;
+            let nc = (c + dc + mineSize) % mineSize;
+
+            if (mineBoard[nr][nc] === 'M') count++;
+            }
+        }
+        mineBoard[r][c] = count;
+        }
+    }
+
+    // 화면 생성...
+    for (let r = 0; r < mineSize; r++) {
+        for (let c = 0; c < mineSize; c++) {
+        let cell = document.createElement('div');
+        cell.style.width = '30px';
+        cell.style.height = '30px';
+        cell.style.backgroundColor = '#ccc';
+        cell.style.border = '1px solid #999';
+        cell.style.display = 'flex';
+        cell.style.alignItems = 'center';
+        cell.style.justifyContent = 'center';
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+
+        cell.addEventListener('click', onMineClick);
+        cell.addEventListener('contextmenu', onMineRightClick);
+
+        mineContainer.appendChild(cell);
+        }
+    }
+
+    // 다시하기 버튼...
+    let resetBtn = document.createElement('button');
+    resetBtn.textContent = '다시하기';
+    resetBtn.onclick = initMinesweeper;
+    resetBtn.style.margin = '20px';
+    resetBtn.style.padding = '10px 20px';
+    resetBtn.style.fontSize = '1em';
+    resetBtn.style.background = '#e91e63';
+    resetBtn.style.color = '#ffffff';
+    resetBtn.style.border = 'none';
+    resetBtn.style.borderRadius = '5px';
+    resetBtn.style.cursor = 'pointer';
+    resetBtn.style.textAlign = 'center';
+    
+    mineContainer.appendChild(resetBtn);
+    }
+
+    function revealCell(r, c) {
+    r = (r + mineSize) % mineSize;
+    c = (c + mineSize) % mineSize;
+
+    if (mineRevealed[r][c]) return;
+
+    mineRevealed[r][c] = true;
+    revealedCount++;
+
+    let index = r * mineSize + c + 1; // +1 to account for mineCounter at index 0
+    let cell = mineContainer.children[index];
+    
+    cell.style.backgroundColor = '#eee';
+    
+    if (mineBoard[r][c] === 'M') {
+        cell.textContent = '💣';
+        cell.style.backgroundColor = '#f88';
+        alert('게임 오버!');
+        revealAll();
+    } else if (mineBoard[r][c] > 0) {
+        cell.textContent = mineBoard[r][c];
+    } else {
+        for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            revealCell(r + dr, c + dc);
+        }
+        }
+    }
+
+    // 클리어 조건 확인
+    if (revealedCount === totalSafeCells) {
+        alert('클리어! 지뢰를 모두 풀었습니다.');
+    }
+    }
+
+    function revealAll() {
+    for (let r = 0; r < mineSize; r++) {
+        for (let c = 0; c < mineSize; c++) {
+        let index = r * mineSize + c + 1;
+        let cell = mineContainer.children[index];
+        if (mineRevealed[r][c]) continue;
+
+        if (mineBoard[r][c] === 'M') {
+            cell.textContent = '💣';
+            cell.style.backgroundColor = '#f88';
+        } else if (mineBoard[r][c] > 0) {
+            cell.textContent = mineBoard[r][c];
+        }
+        cell.style.backgroundColor = '#eee';
+        }
+    }
+    }
+
+  </script>
+</body>
+</html>
+
